@@ -1,0 +1,9 @@
+# Build Files
+Build
+
+# Dependencies
+node_modules
+node_modules_bak
+
+# VSCode Specific files
+.vscode

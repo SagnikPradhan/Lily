@@ -1,0 +1,27 @@
+{
+  "name": "lily",
+  "version": "0.0.1",
+  "description": "Lily, My Lovely Discord Bot",
+  "main": "build/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc -w",
+    "start": "node build/index.js"
+  },
+  "author": "Sagnik Pradhan",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/centra": "^2.2.0",
+    "@types/ws": "^7.2.3",
+    "@typescript-eslint/eslint-plugin": "^2.26.0",
+    "@typescript-eslint/parser": "^2.26.0",
+    "eslint": "^6.8.0",
+    "eslint-config-google": "^0.14.0",
+    "eslint-plugin-tsdoc": "^0.2.4",
+    "typescript": "^3.8.3"
+  },
+  "dependencies": {
+    "centra": "^2.4.0",
+    "ws": "^7.2.3"
+  }
+}
