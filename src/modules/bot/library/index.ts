@@ -1,9 +1,12 @@
+// Godbless the guy who made this https://s.gus.host/flowchart.png
+
 import c from 'centra';
+import Websocket from 'ws';
 
 // Constants
 const LIB_VERSION = 0;
 const LIB_URL = 'no-url';
-const GATEWAY_VERSION = 'v6';
+const GATEWAY_VERSION = '6';
 const ENDPOINTS = {
   getGatewayBot: () => '/gateway/bot',
 } as const;
@@ -118,6 +121,8 @@ export const Resources = {Multipart};
 export default class Client {
   #internals: {
     token: string;
+    wsUrl?: string;
+    ws?: Websocket;
   }
 
   /**
@@ -128,6 +133,8 @@ export default class Client {
   constructor({
     token,
   }: ClientOptsInterface) {
+    if (typeof token !== 'string') throw new Error('Invalid Token');
+
     this.#internals = {token};
   }
 
@@ -139,7 +146,7 @@ export default class Client {
    * @param method - HTTP Method
    * @param body - Request Body
    */
-  async #apiRequest({
+  private async _apiRequest({
     endpoint, headers, method = 'GET', body,
   }: APIReqOptsInterface): Promise<unknown> {
     if (typeof endpoint !== 'string' || endpoint.length <= 0) {
@@ -147,7 +154,7 @@ export default class Client {
     }
 
     // Default Request
-    const request = c(`https://discordapp.com/api/${GATEWAY_VERSION}`, method)
+    const request = c(`https://discordapp.com/api/v${GATEWAY_VERSION}`, method)
         .path(endpoint)
         .compress()
         .header({
@@ -171,4 +178,106 @@ export default class Client {
     const response = await request.send();
     return response.json();
   };
+
+  /**
+   * Connect to the gateway
+   */
+  async connect(): Promise<void> {
+    const websocket = await this._connectToGateway();
+    this._handleGatewayEvents(websocket);
+  }
+
+  /**
+   * Connects to Gateway
+   */
+  private async _connectToGateway(): Promise<Websocket> {
+    // Get gateway url
+    const {url} = await this._apiRequest({
+      endpoint: ENDPOINTS.getGatewayBot(),
+    }) as {url: string; shards: number; session_start_limit: object};
+
+    // I know this is long
+    const tempUrl = new URL(url);
+    tempUrl.searchParams.append('v', GATEWAY_VERSION);
+    tempUrl.searchParams.append('encoding', 'json');
+
+    const betterUrl = tempUrl.toString();
+
+    // Set internal vaiables for maybe future reference
+    this.#internals.wsUrl = betterUrl;
+    const websocket = this.#internals.ws = new Websocket(betterUrl);
+
+    return websocket;
+  }
+
+  /**
+   * Handle Gateway Events
+   * @param websocket - Websocket connection
+   */
+  private _handleGatewayEvents(websocket: Websocket): Promise<void> {
+    return new Promise((resolve, reject) => {
+      websocket.on('message', (message) => {
+        // Handle Gateway messages
+        this._handleGatewayMessages(message)
+            .catch((err) => reject(err));
+      });
+
+      websocket.on('open', () => resolve());
+      websocket.on('error', (err) => reject(err));
+    });
+  }
+
+  /**
+   * Handle Gateway message
+   * @param message - Websocket message
+   */
+  private async _handleGatewayMessages(message: Websocket.Data): Promise<void> {
+    let payload: {
+      op: number;
+      d: CustomObjType<unknown>;
+    } | {
+      op: 0;
+      d: CustomObjType<unknown>;
+      s: number;
+      t: string;
+    };
+
+    // Try parsing the message
+    try {
+      payload = JSON.parse(message.toString());
+    } catch (err) {
+      throw new Error('Invalid Message');
+    }
+
+    console.log(payload);
+
+    // Based on OP Code handle recieved payloads or events
+    switch (payload.op) {
+      // DISPATCH
+      case 0:
+        break;
+
+      // HEARTBEAT
+      case 1:
+        break;
+
+      // RECONNECT
+      case 7:
+        break;
+
+      // INVALID SESSION
+      case 9:
+        break;
+
+      // HELLO
+      case 10:
+        break;
+
+      // HEARTBEAT ACK
+      case 11:
+        break;
+    }
+  }
 }
+
+// TODO: Use Custom Errors Everywhere
