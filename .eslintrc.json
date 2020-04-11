@@ -14,7 +14,7 @@
     },
     "parser": "@typescript-eslint/parser",
     "parserOptions": {
-        "ecmaVersion": 2020,
+        "ecmaVersion": 2019,
         "project": "./tsconfig.json"
     },
     "plugins": [
@@ -23,7 +23,8 @@
     ],
     "rules": {
         "valid-jsdoc": "off",
-        "tsdoc/syntax": "warn"
+        "tsdoc/syntax": "warn",
+        "no-console": "error"
     },
     "ignorePatterns": [
         "node_modules/*",
