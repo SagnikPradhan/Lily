@@ -5,24 +5,13 @@ import Websocket from 'ws';
 import {EventEmitter} from 'events';
 import os from 'os';
 
-// Constants
-const LIB_VERSION = 0;
-const LIB_URL = 'no-url';
-const GATEWAY_VERSION = '6';
-const ENDPOINTS = {
-  getGatewayBot: () => '/gateway/bot',
-} as const;
-
-// Types and Interfaces
-type CustomObjType<T> = {[key: string]: T};
-type ValidValues = boolean | number | string | ValidValues[];
-type MultipartValidObjType =
-  CustomObjType<ValidValues | CustomObjType<ValidValues>> ;
-
-interface FileInterface {
-  file: Buffer;
-  fileName: string;
-}
+import Multipart from './utils/multipart';
+import {
+  ENDPOINTS,
+  GATEWAY_VERSION,
+  LIB_URL,
+  LIB_VERSION,
+} from './utils/constants';
 
 interface APIReqOptsInterface {
   endpoint: string;
@@ -34,85 +23,6 @@ interface APIReqOptsInterface {
 interface ClientOptsInterface {
   token: string;
   intents: number[];
-}
-
-/**
- * Multipart Data
- */
-class Multipart {
-  public readonly boundary = '966853828642832635284737392';
-  #data: [string, MultipartValidObjType | FileInterface][];
-
-  /**
-   * Create Multipart Form Data
-   * @param data - Object to be sent as Multipart
-   */
-  constructor(data = {}) {
-    this.#data = Object.entries(data);
-  }
-
-  /**
-   * Add data or property
-   * @param name - Name of the data or property
-   * @param data - Data to be appended
-   */
-  append(name: string, data: MultipartValidObjType | FileInterface): void {
-    this.#data.push([name, data]);
-  }
-
-  /**
-   * Parse the Multipart into string
-   */
-  parse(): string {
-    const lines: string[] = [];
-    const data = this.#data;
-    const length = this.#data.length;
-    const boundary = this.boundary;
-
-    // Body
-    for (let index = 0; index < length; index++) {
-      const [name, value] = data[index];
-      const isFile = name === 'file';
-
-      // New segment start
-      lines.push(`--${boundary}`);
-
-      // For files
-      if (isFile) {
-        if (!(value.file instanceof Buffer)) throw new Error('Invalid File');
-        // If file is Buffer
-        else {
-          const file = value.file;
-          const fileName = value.fileName || 'unknown';
-
-          lines.push(
-              `Content-Disposition: file; name="file"; filename="${fileName}"`,
-          );
-          lines.push('Content-Type: application/octet-stream');
-          lines.push('');
-          lines.push(file.toString());
-        }
-      // For Payloads
-      } else {
-        if (typeof value !== 'object') throw new Error('Invalid Payload');
-
-        lines.push(`Content-Disposition: form-data; name="${name}"`);
-        lines.push('Content-Type: application/json');
-        lines.push('');
-
-        // Try parsing the object
-        try {
-          lines.push(JSON.stringify(value));
-        } catch (err) {
-          throw new Error('Invalid Payload');
-        }
-      }
-    }
-
-    // End
-    lines.push(`--${boundary}--`);
-    return lines.join('\r\n');
-  }
 }
 
 // Resources
@@ -258,10 +168,10 @@ export default class Client extends EventEmitter {
   ): Promise<void> {
     let payload: {
       op: number;
-      d: CustomObjType<unknown>;
+      d: Record<string, unknown>;
     } | {
       op: 0;
-      d: CustomObjType<unknown>;
+      d: Record<string, unknown>;
       s: number;
       t: string;
     };
