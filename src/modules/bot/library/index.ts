@@ -2,7 +2,7 @@
 
 import c from 'centra';
 import Websocket from 'ws';
-import {EventEmitter} from 'events';
+import {EventEmitter} from 'eventemitter3';
 import os from 'os';
 
 import Multipart from './utils/multipart';
@@ -25,13 +25,15 @@ interface ClientOptsInterface {
   intents: number[];
 }
 
-// Resources
-export const Resources = {Multipart};
+// Events
+interface EventsMap {
+  debug: [Error?, string?, Record<string, unknown>?];
+};
 
 /**
  * Discord Client
  */
-export default class Client extends EventEmitter {
+export default class Client extends EventEmitter<EventsMap> {
   #internals: {
     options: {
       token: string;
@@ -148,12 +150,16 @@ export default class Client extends EventEmitter {
       websocket.on('message', (message) => {
         // Handle Gateway messages
         this._handleGatewayMessages(websocket, message)
-            .catch((err) => this.emit('debug', err));
+            .catch((error) => this.emit('debug', error));
       });
     });
-    websocket.on('error', (err) => this.emit('debug', err));
+    websocket.on('error', (error) => this.emit('debug', error));
     websocket.on('close', (code) => {
-      this.emit('debug', code);
+      this.emit('debug',
+          undefined,
+          'Websocket Closed',
+          {'closeCode': code},
+      );
     });
   }
 
@@ -184,7 +190,7 @@ export default class Client extends EventEmitter {
     }
 
     // For Debugging
-    this.emit('debug', payload);
+    this.emit('debug', undefined, 'Recieved Payload', {payload});
 
     // Based on OP Code handle recieved payloads or events
     switch (payload.op) {
@@ -237,11 +243,11 @@ export default class Client extends EventEmitter {
       websocket: Websocket,
   ): void {
     // Cancel Function
-    const cancel = (err?: Error): void => {
+    const cancel = (error?: Error): void => {
       websocket.close();
       const loop = this.#internals.heartbeat?.loop;
       if (loop) clearInterval(loop);
-      if (err) this.emit('debug', err);
+      if (error) this.emit('debug', error);
     };
 
     // Start heartbeat loop
@@ -262,11 +268,12 @@ export default class Client extends EventEmitter {
    */
   private _sendHeartbeat(websocket: Websocket): Promise<void> {
     return new Promise((resolve, reject) => {
-      this.emit('debug', 'Sent Heartbeat');
-
       const payload = JSON.stringify({
         op: 1, d: this.#internals.lastSequenceNumber,
       });
+
+      // For Debugging
+      this.emit('debug', undefined, 'Sending Heartbeat', {payload});
 
       websocket.send(payload, (err) => {
         if (err) reject(err);

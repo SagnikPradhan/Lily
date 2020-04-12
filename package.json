@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "centra": "^2.4.0",
+    "eventemitter3": "^4.0.0",
     "ws": "^7.2.3"
   }
 }
