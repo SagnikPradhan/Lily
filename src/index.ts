@@ -7,7 +7,7 @@ const main = async () => {
   // Discord Client
   const discordClient = new CommandClient(discordToken);
   // Load all the events
-  const totalNumberOfEvents = await loadEvents(discordClient, ["events"]);
+  const totalNumberOfEvents = await loadEvents(discordClient, ["modules"]);
   console.log(`Loaded ${totalNumberOfEvents} Event Handlers`);
   // Connect to gateway
   await discordClient.connect();
