@@ -113,3 +113,6 @@ dist
 !.yarn/cache
 !.yarn/releases
 !.yarn/plugins
+
+# Typescript Builds
+build

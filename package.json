@@ -1,8 +1,14 @@
 {
   "name": "lily",
   "devDependencies": {
+    "@types/node": "^14.0.1",
+    "@typescript-eslint/eslint-plugin": "latest",
+    "@typescript-eslint/parser": "latest",
     "@yarnpkg/pnpify": "^2.0.0-rc.22",
     "eslint": "^7.0.0",
     "typescript": "^3.9.2"
+  },
+  "dependencies": {
+    "eris": "^0.13.1"
   }
 }
