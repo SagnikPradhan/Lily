@@ -5,8 +5,38 @@ import { promises as fs } from "fs";
 import path from "path";
 
 /**
+ * Recursively loads all files in the directory ending with `.event.js`
+ *
+ * @param directory - Direcotry to search
+ * @returns Absolute file paths
+ */
+const recursivelyGetEventFilePaths = async (directory: string) => {
+  let filePaths: string[] = [];
+
+  // Resolve path to absolute
+  const directoryPath = path.resolve(__dirname, directory);
+  const items = await fs.readdir(directoryPath);
+
+  // Iterate over each item
+  // If it is a file push to array
+  // If directory call this function again
+  for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
+    const item = path.resolve(directoryPath, items[itemIndex]);
+    const itemStat = await fs.stat(item);
+
+    if (itemStat.isDirectory())
+      filePaths.push(...(await recursivelyGetEventFilePaths(item)));
+    else if (itemStat.isFile()) {
+      if (item.endsWith("event.js")) filePaths.push(item);
+    } else throw new Error(`Unable to load, Not a directory or file ${item}`);
+  }
+
+  return filePaths;
+};
+
+/**
  * Loads event handler files
- * 
+ *
  * Files should have name of following structure `filename.event.js`
  * Files should export an `eventName` string and `listener` function
  * In the listener function first argument is always the discord client itself
@@ -16,42 +46,31 @@ import path from "path";
  * @returns Number of events loaded
  */
 const loadEvents = async (bot: Client, eventDirectories: string[]) => {
-  let totalNumberOfEvents = 0;
-  // Iterate over all the directories containing events
-  for (
-    let currentDirIndex = 0;
-    currentDirIndex < eventDirectories.length;
-    currentDirIndex++
-  ) {
-    const eventDirectory = eventDirectories[currentDirIndex];
+  // Iterate over all the directories containing events and get all the file paths
+  const files: string[] = (
+    await Promise.all(
+      eventDirectories.map((dir) => recursivelyGetEventFilePaths(dir))
+    )
+  ).flat();
 
-    // Get all the events
-    const eventsDirectoryPath = path.join(__dirname, eventDirectory);
-    const eventsDirectory = (
-      await fs.readdir(eventsDirectoryPath)
-    ).filter((name) => name.endsWith(".event.js"));
-
-    // Load all the events
-    const numberOfEvents = eventsDirectory.length;
-    for (let index = 0; index < numberOfEvents; index++) {
-      const fileName = eventsDirectory[index];
-      const filePath = path.join(eventsDirectoryPath, fileName);
-      const {
-        eventName,
-        listener,
-      }: { eventName: string; listener: Function } = await import(filePath);
-      // Validate file
-      if (typeof eventName != "string" || typeof listener != "function")
-        throw new Error(`Invalid File: ${filePath}`);
-      else
-        bot.on(eventName.toLowerCase(), (...args: unknown[]) =>
-          listener(bot, ...args)
-        );
-    }
-
-    totalNumberOfEvents += numberOfEvents;
+  const filesLength = files.length;
+  // Load each file
+  // Also validate them
+  for (let fileIndex = 0; fileIndex < filesLength; fileIndex++) {
+    const filePath = files[fileIndex];
+    const {
+      eventName,
+      listener,
+    }: { eventName: string; listener: Function } = await import(filePath);
+    if (typeof eventName != "string" && typeof listener != "function")
+      throw new Error(`Invalid Event Handler ${filePath}`);
+    else
+      bot.on(eventName.toLowerCase(), (...args: unknown[]) =>
+        listener(bot, ...args)
+      );
   }
-  return totalNumberOfEvents
+
+  return filesLength;
 };
 
 const main = async () => {
