@@ -1,5 +1,5 @@
 import { CommandClient } from "eris";
-import { initHandlers } from "./handlers";
+import { initHandlers } from "./loaders";
 
 const main = async () => {
   // Configuration
