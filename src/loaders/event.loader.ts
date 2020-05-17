@@ -3,16 +3,31 @@ import type { Client } from "eris";
 // eslint-disable-next-line no-unused-vars
 import type { Loader } from "./index";
 
+// Type for all event handlers
+export type EventHandler = {
+  name: string;
+  listener: (bot: Client, ...args: unknown[]) => Promise<void> | void;
+};
+
 // File types this handler accepts
 const fileTypes = ["event"];
 
 /**
  * Loads event handler files
  *
- * Files should have name of following structure `filename.event.js`
- * Files should export an `eventName` string and `listener` function
- * In the listener function first argument is always the discord client itself
- * while other arguments remain specific to the event
+ * @description Files should have name of following structure `filename.event.js`
+ * Files should export `event` with `EventHandler` type
+ * 
+ * @example
+ * import type { EventHandler } from "../../loaders/event.loader";
+ *
+ * export const event: EventHandler = {
+ *  name: "ready",
+ *  listener: (bot) => {
+ *    console.log(`Logged in as ${bot.user.username}`);
+ *  },
+ * };
+ * 
  * @param bot - Discord Bot Client
  * @param files- Absolute path of all the files
  * @returns Number of events loaded
@@ -23,14 +38,16 @@ async function load(bot: Client, files: string[]): Promise<number> {
   // Also validate them
   for (let fileIndex = 0; fileIndex < filesLength; fileIndex++) {
     const filePath = files[fileIndex];
-    const {
-      eventName,
-      listener,
-    }: { eventName: string; listener: Function } = await import(filePath);
-    if (typeof eventName != "string" && typeof listener != "function")
+    const { event }: { event: EventHandler } = await import(filePath);
+    const { listener, name } = event || {};
+    if (
+      typeof event != "object" ||
+      typeof name != "string" ||
+      typeof listener != "function"
+    )
       throw new Error(`Invalid Event Handler ${filePath}`);
     else
-      bot.on(eventName.toLowerCase(), (...args: unknown[]) =>
+      bot.on(name.toLowerCase(), (...args: unknown[]) =>
         listener(bot, ...args)
       );
   }

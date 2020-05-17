@@ -1,8 +1,9 @@
 // eslint-disable-next-line no-unused-vars
-import type { Client } from "eris";
+import type { EventHandler } from "@loader/event.loader";
 
-export const eventName = "ready";
-
-export const listener = (bot: Client) => {
-  console.log(`Logged in as ${bot.user.username}`);
+export const event: EventHandler = {
+  name: "ready",
+  listener: (bot) => {
+    console.log(`Logged in as ${bot.user.username}`);
+  },
 };
