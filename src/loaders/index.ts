@@ -3,6 +3,9 @@ import { promises as fs } from "fs";
 // eslint-disable-next-line no-unused-vars
 import type { Client } from "eris";
 
+// Loaders
+import EventLoader from "./event.loader";
+
 /**
  * Recursively gets all javascript files absolute paths
  * @param directory - Direcotry to search
@@ -12,12 +15,8 @@ async function recursivelyGetFilePaths(directory: string) {
   let filePaths: string[] = [];
 
   // Resolve path to absolute
-  // Make sure it doesnt load paths relative to handler folder
-  const directoryPath = path.resolve(
-    __dirname,
-    __dirname.endsWith("handlers") ? "../" : "",
-    directory
-  );
+  // Make sure it doesnt load paths relative to loader folder
+  const directoryPath = path.resolve(__dirname, "../", directory);
   const items = await fs.readdir(directoryPath);
 
   // Iterate over each item
@@ -37,49 +36,11 @@ async function recursivelyGetFilePaths(directory: string) {
   return filePaths;
 }
 
-type Loader = {
+// All loaders follow same type
+export type Loader = {
   fileTypes: string[];
-  load: (client: Client, files: string[]) => Promise<void>;
+  load: (client: Client, files: string[]) => Promise<number>;
 };
-
-/**
- * Get all the loaders
- */
-async function getLoaders() {
-  // Read current directory's all files
-  const files = await fs.readdir(__dirname);
-
-  // Files all loader files and load them
-  const loaderFiles: {
-    path: string;
-    file: Loader;
-  }[] = await Promise.all(
-    files
-      .filter((file) => file.endsWith(".loader.js"))
-      .map((file) => path.resolve(__dirname, file))
-      .map(async (path) => ({
-        path,
-        file: await import(path),
-      }))
-  );
-
-  // Validate and check all the files
-  const invalidLoaderFilePaths = loaderFiles
-    .filter(({ file }) => {
-      // Check whether they have invalid properties
-      return (
-        !Array.isArray(file.fileTypes) ||
-        file.fileTypes.some((fileType) => typeof fileType != "string") ||
-        typeof file.load != "function"
-      );
-    })
-    .map(({ path }) => path);
-
-  // If all files are good return them
-  if (invalidLoaderFilePaths.length > 0)
-    throw new Error(`Invalid Loaders: ${invalidLoaderFilePaths}`);
-  else return loaderFiles.map(({ file }) => file);
-}
 
 /**
  * Loads all handlers.
@@ -92,7 +53,7 @@ export async function initHandlers(
   moduleFolder: string
 ) {
   const filePaths = await recursivelyGetFilePaths(moduleFolder);
-  const loaders = await getLoaders();
+  const loaders: Loader[] = [EventLoader];
 
   // Files are sorted with their Loaders
   const sortedFilePaths = new Map<Loader, string[]>();

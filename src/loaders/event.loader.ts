@@ -1,8 +1,10 @@
 // eslint-disable-next-line no-unused-vars
 import type { Client } from "eris";
+// eslint-disable-next-line no-unused-vars
+import type { Loader } from "./index";
 
 // File types this handler accepts
-export const fileTypes = ['event']
+const fileTypes = ["event"];
 
 /**
  * Loads event handler files
@@ -15,7 +17,7 @@ export const fileTypes = ['event']
  * @param files- Absolute path of all the files
  * @returns Number of events loaded
  */
-export async function load(bot: Client, files: string[]) {
+async function load(bot: Client, files: string[]): Promise<number> {
   const filesLength = files.length;
   // Load each file
   // Also validate them
@@ -35,3 +37,6 @@ export async function load(bot: Client, files: string[]) {
 
   return filesLength;
 }
+
+const EventLoader: Loader = { fileTypes, load };
+export default EventLoader;
