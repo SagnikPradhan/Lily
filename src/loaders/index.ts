@@ -1,10 +1,11 @@
 import path from "path";
 import { promises as fs } from "fs";
 // eslint-disable-next-line no-unused-vars
-import type { Client } from "eris";
+import type { CommandClient } from "eris";
 
 // Loaders
 import EventLoader from "./event.loader";
+import CommandLoader from "./command.loader";
 
 /**
  * Recursively gets all javascript files absolute paths
@@ -39,21 +40,21 @@ async function recursivelyGetFilePaths(directory: string) {
 // All loaders follow same type
 export type Loader = {
   fileTypes: string[];
-  load: (client: Client, files: string[]) => Promise<number>;
+  load: (client: CommandClient, files: string[]) => Promise<number>;
 };
 
 /**
  * Loads all handlers.
  * Handlers include event and command handlers for now.
- * @param discordClient - Discord Bot Client
+ * @param discordClient - Discord Bot CommandClient
  * @param moduleFolder - Modules folder
  */
 export async function initHandlers(
-  discordClient: Client,
+  discordClient: CommandClient,
   moduleFolder: string
 ) {
   const filePaths = await recursivelyGetFilePaths(moduleFolder);
-  const loaders: Loader[] = [EventLoader];
+  const loaders: Loader[] = [EventLoader, CommandLoader];
 
   // Files are sorted with their Loaders
   const sortedFilePaths = new Map<Loader, string[]>();
